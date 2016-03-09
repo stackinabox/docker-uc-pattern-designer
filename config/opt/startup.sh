@@ -79,7 +79,7 @@ if [ -n "$ENGINE_ENV_PUBLIC_HOSTNAME" ]; then
   sed -i "s/ENGINE_PORT_8004_TCP_PORT/${ENGINE_PORT_8004_TCP_PORT}/" /root/seed.sql
   sed -i "s/ENGINE_PORT_5000_TCP_PORT/${ENGINE_PORT_5000_TCP_PORT}/" /root/seed.sql
 
-  sed -i "s/KEYSTONE_URL/${KEYSTONE_URL}/" /root/seed.sql
+  sed -i "s|KEYSTONE_URL|${KEYSTONE_URL}|g" /root/seed.sql
 
   DATABASE_SEED_DATA_DIR="/opt/ibm-ucd-patterns/opt/tomcat/webapps/landscaper/WEB-INF/database/translations"
   DATABASE_LOCALE="en_us"
@@ -107,6 +107,36 @@ else
   echo "WARN: Either no engine was linked, or the engine did not specify an alias for its PUBLIC_HOSTNAME."
   echo "TIP: When you launch the engine container, use '-e PUBLIC_HOSTNAME={host alias}' "
   echo "     where the host alias may be 'boot2docker' or a user defined host alias defined in your /etc/hosts."
+fi
+
+if [ -n "$DEPLOY_PORT_8443_TCP_ADDR" ]; then
+
+  export DEPLOY_SERVER_URL="https\://$DEPLOY_PORT_8443_TCP_ADDR\:$DEPLOY_PORT_8443_TCP_PORT"
+  export DEPLOY_SERVER_AUTH_TOKEN=`curl -k -u admin:admin "https://${DEPLOY_PORT_8443_TCP_ADDR}:${DEPLOY_PORT_8443_TCP_PORT}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" -X PUT \
+| python -c \
+  "import json; import sys;
+data=json.load(sys.stdin); print data['token']"`
+  sed -i "s|DEPLOY_SERVER_URL|${DEPLOY_SERVER_URL}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+  sed -i "s|DEPLOY_SERVER_AUTH_TOKEN|${DEPLOY_SERVER_AUTH_TOKEN}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+
+  echo "Registering UrbanCode Deploy server: "
+  echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
+  echo "DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN}"
+
+  curl -k -u admin:admin -s -H "Accept: application/json" -X PUT \
+  -d '
+  {
+    "name": "landscaper",
+    "description": "",
+    "properties": {
+      "landscaperUrl": "https://${WEB_SERVER_HOSTNAME}:9443/landscaper",
+      "landscaperUser": "user",
+      "landscaperPassword": "user"
+    }
+  }' \
+  "https://${DEPLOY_PORT_8443_TCP_ADDR}:${DEPLOY_PORT_8443_TCP_PORT}/rest/integration/pattern"
+else
+  echo "TIP: link an urbancode deploy container via --link %myucdcontainername%:deploy to automatically register it with this patterns container."
 fi
 
 if [ -n "$LOG_CONFIG" ]; then

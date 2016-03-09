@@ -28,12 +28,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 	apt-get purge && \
 	rm -rf /var/lib/apt/lists/* 
 
-ARG BUILD_VERSION=dev
 ENV LICENSE_SERVER_URL ${LICENSE_SERVER_URL:-$LICENSE_SERVER_URL}
 ENV WEB_SERVER_HOSTNAME ${WEB_SERVER_HOSTNAME:-$HOSTNAME}
-
-ENV DEPLOY_SERVER_URL ${DEPLOY_SERVER_URL:-$DEPLOY_SERVER_URL}
-ENV DEPLOY_SERVER_AUTH_TOKEN ${DEPLOY_SERVER_AUTH_TOKEN:-$DEPLOY_SERVER_AUTH_TOKEN}
 
 ADD artifacts/ibm-ucd-patterns-install /tmp/ibm-ucd-patterns-install
 ADD config/opt/startup.sh /opt
@@ -55,14 +51,14 @@ RUN mkdir /var/run/sshd && \
 	-Dinstall.server.web.always.secure=Y  \
 	-Dinstall.server.dir=/opt/ibm-ucd-patterns \
 	-Dnon-interactive=true \
-	-Dinstall.server.licenseServer.url=LICENSE_SERVER_URL \
+	-Dinstall.server.licenseServer.url=$LICENSE_SERVER_URL \
 	-Dinstall.server.db.type=postgres \
 	-Dinstall.server.db.installSchema=N \
 	-Dinstall.server.db.username=ibm_ucdp \
 	-Dinstall.server.db.password=passw0rd \
 	-Dinstall.server.deployServer.url=DEPLOY_SERVER_URL \
 	-Dinstall.server.deployServer.authToken=DEPLOY_SERVER_AUTH_TOKEN \
-	-Dinstall.server.discoveryServer.url=localhost:7575" \
+	-Dinstall.server.discoveryServer.url=$WEB_SERVER_HOSTNAME:7575" \
 	./gradlew -sSq install && \
 	rm -rf /tmp/ibm-ucd-patterns-install/web-install
 
