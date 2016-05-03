@@ -38,16 +38,16 @@ fi
 
 sed -i "s/\(install\.server\.web\.host=\).*\$/\1${WEB_SERVER_HOSTNAME}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
-PUBLIC_URL=`echo "https://${WEB_SERVER_HOSTNAME}:9443/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+PUBLIC_URL=`echo "http://${WEB_SERVER_HOSTNAME}:9080/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(public\.url=\).*\$/\1${PUBLIC_URL}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
 # Gitblit url 
-GITBLIT_URL=`echo "https://${WEB_SERVER_HOSTNAME}:9443/gitblit" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+GITBLIT_URL=`echo "http://${WEB_SERVER_HOSTNAME}:9080/gitblit" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(com\.ibm\.landscaper\.gitblit\.url=\).*\$/\1${GITBLIT_URL}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
 
 # Using insecure connection for now for filesystem
-VERSIONED_FILESYSTEM_API_URL=`echo "https://${WEB_SERVER_HOSTNAME}:9443/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+VERSIONED_FILESYSTEM_API_URL=`echo "http://${WEB_SERVER_HOSTNAME}:9080/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(versioned-filesystem-client\.ribbon\.listOfServers=\).*\$/\1${VERSIONED_FILESYSTEM_API_URL}/" /opt/ibm-ucd-patterns/conf/server/versioned-filesystem-client.properties
 
 sed -i "s/WEB_SERVER_HOSTNAME/${WEB_SERVER_HOSTNAME}/" /opt/ibm-ucd-patterns/conf/server/engine-services-client.properties
@@ -109,10 +109,10 @@ else
   echo "     where the host alias may be 'boot2docker' or a user defined host alias defined in your /etc/hosts."
 fi
 
-if [ -n "$DEPLOY_PORT_8443_TCP_ADDR" ]; then
+if [ -n "$DEPLOY_PORT_8080_TCP_ADDR" ]; then
 
-  export DEPLOY_SERVER_URL="https\://$DEPLOY_PORT_8443_TCP_ADDR\:$DEPLOY_PORT_8443_TCP_PORT"
-  export DEPLOY_SERVER_AUTH_TOKEN=`curl -k -u admin:admin "https://${DEPLOY_PORT_8443_TCP_ADDR}:${DEPLOY_PORT_8443_TCP_PORT}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" -X PUT \
+  export DEPLOY_SERVER_URL="http\://$DEPLOY_PORT_8080_TCP_ADDR\:$DEPLOY_PORT_8080_TCP_PORT"
+  export DEPLOY_SERVER_AUTH_TOKEN=`curl -k -u admin:admin "http://${DEPLOY_PORT_8080_TCP_ADDR}:${DEPLOY_PORT_8080_TCP_PORT}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" -X PUT \
 | python -c \
   "import json; import sys;
 data=json.load(sys.stdin); print data['token']"`
@@ -129,12 +129,12 @@ data=json.load(sys.stdin); print data['token']"`
     "name": "landscaper",
     "description": "",
     "properties": {
-      "landscaperUrl": "https://${WEB_SERVER_HOSTNAME}:9443/landscaper",
+      "landscaperUrl": "http://${WEB_SERVER_HOSTNAME}:9080/landscaper",
       "landscaperUser": "user",
       "landscaperPassword": "user"
     }
   }' \
-  "https://${DEPLOY_PORT_8443_TCP_ADDR}:${DEPLOY_PORT_8443_TCP_PORT}/rest/integration/pattern"
+  "http://${DEPLOY_PORT_8080_TCP_ADDR}:${DEPLOY_PORT_8080_TCP_PORT}/rest/integration/pattern"
 else
   echo "TIP: link an urbancode deploy container via --link %myucdcontainername%:deploy to automatically register it with this patterns container."
 fi

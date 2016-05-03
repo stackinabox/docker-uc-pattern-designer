@@ -48,7 +48,7 @@ RUN mkdir /var/run/sshd && \
 	-Dinstall.server.web.host=WEB_SERVER_HOSTNAME \
 	-Dinstall.server.web.https.port=9443 \
 	-Dinstall.server.web.port=9080 \
-	-Dinstall.server.web.always.secure=Y  \
+	-Dinstall.server.web.always.secure=N  \
 	-Dinstall.server.dir=/opt/ibm-ucd-patterns \
 	-Dnon-interactive=true \
 	-Dinstall.server.licenseServer.url=$LICENSE_SERVER_URL \
