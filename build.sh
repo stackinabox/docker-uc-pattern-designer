@@ -25,7 +25,7 @@ echo "ucd version:  $UCD_DSG_VERSION"
 echo "ucd download url: $UCD_DSG_DOWNLOAD_URL"
 
 curl -u$ARTIFACT_USERNAME:$ARTIFACT_PASSWORD -O $UCD_DSG_DOWNLOAD_URL
-tar xvzf ibm-ucd-patterns-web-designer-linux-x86_64.tgz -C artifacts/
+tar xzf ibm-ucd-patterns-web-designer-linux-x86_64.tgz -C artifacts/
 rm -f ibm-ucd-patterns-web-designer-linux-x86_64.tgz
 
 docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
