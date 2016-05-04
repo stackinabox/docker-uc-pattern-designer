@@ -1,0 +1,14 @@
+sudo: required
+
+language: ruby
+
+services:
+  - docker
+
+env:
+  - UCD_VERSION=latest
+
+install: true
+
+script:
+  - ./build.sh
