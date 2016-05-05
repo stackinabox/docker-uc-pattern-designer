@@ -32,4 +32,4 @@ rm -f ibm-ucd-patterns-web-designer-linux-x86_64.tgz
 
 docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 docker build -t stackinabox/urbancode-patterns-designer:$UCD_DSG_VERSION .
-docker push stackinabox/urbancode-patterns-designer:$UCD_DSG_VERSION
+#docker push stackinabox/urbancode-patterns-designer:$UCD_DSG_VERSION

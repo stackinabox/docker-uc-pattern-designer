@@ -45,7 +45,7 @@ RUN mkdir /var/run/sshd && \
 	JAVA_HOME=/tmp/ibm-ucd-patterns-install/web-install/media/server/java/jre \
 	JAVA_OPTS="-Dlicense.accepted=Y \
 	-Dinstall.server.dir=/opt/ibm-ucd-patterns \
-	-Dinstall.server.web.host=WEB_SERVER_HOSTNAME \
+	-Dinstall.server.web.host=$WEB_SERVER_HOSTNAME \
 	-Dinstall.server.web.https.port=9443 \
 	-Dinstall.server.web.port=9080 \
 	-Dinstall.server.web.always.secure=N  \

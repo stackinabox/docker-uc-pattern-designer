@@ -123,8 +123,7 @@ data=json.load(sys.stdin); print data['token']"`
   echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
   echo "DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN}"
 
-  curl -k -u admin:admin -s -H "Accept: application/json" -X PUT \
-  -d '
+  cat > pattern-integration <<EOF
   {
     "name": "landscaper",
     "description": "",
@@ -133,7 +132,11 @@ data=json.load(sys.stdin); print data['token']"`
       "landscaperUser": "user",
       "landscaperPassword": "user"
     }
-  }' \
+  }
+EOF
+
+  curl -k -u admin:admin -s -H "Accept: application/json" -X PUT \
+  -d @pattern-integration \
   "http://${DEPLOY_PORT_8080_TCP_ADDR}:${DEPLOY_PORT_8080_TCP_PORT}/rest/integration/pattern"
 else
   echo "TIP: link an urbancode deploy container via --link %myucdcontainername%:deploy to automatically register it with this patterns container."
