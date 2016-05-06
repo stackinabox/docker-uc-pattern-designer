@@ -45,7 +45,7 @@ RUN mkdir /var/run/sshd && \
 	JAVA_HOME=/tmp/ibm-ucd-patterns-install/web-install/media/server/java/jre \
 	JAVA_OPTS="-Dlicense.accepted=Y \
 	-Dinstall.server.dir=/opt/ibm-ucd-patterns \
-	-Dinstall.server.web.host=$WEB_SERVER_HOSTNAME \
+	-Dinstall.server.web.host=WEB_SERVER_HOSTNAME \
 	-Dinstall.server.web.https.port=9443 \
 	-Dinstall.server.web.port=9080 \
 	-Dinstall.server.web.always.secure=N  \
@@ -58,7 +58,7 @@ RUN mkdir /var/run/sshd && \
 	-Dinstall.server.db.password=passw0rd \
 	-Dinstall.server.deployServer.url=DEPLOY_SERVER_URL \
 	-Dinstall.server.deployServer.authToken=DEPLOY_SERVER_AUTH_TOKEN \
-	-Dinstall.server.discoveryServer.url=$WEB_SERVER_HOSTNAME:7575" \
+	-Dinstall.server.discoveryServer.url=http\://WEB_SERVER_HOSTNAME:7575" \
 	./gradlew -sSq install && \
 	rm -rf /tmp/ibm-ucd-patterns-install/web-install
 

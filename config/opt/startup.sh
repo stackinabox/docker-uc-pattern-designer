@@ -38,16 +38,16 @@ fi
 
 sed -i "s/\(install\.server\.web\.host=\).*\$/\1${WEB_SERVER_HOSTNAME}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
-PUBLIC_URL=`echo "http://${WEB_SERVER_HOSTNAME}:9080/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+PUBLIC_URL=`echo "http\://${WEB_SERVER_HOSTNAME}\:9080/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(public\.url=\).*\$/\1${PUBLIC_URL}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
 # Gitblit url 
-GITBLIT_URL=`echo "http://${WEB_SERVER_HOSTNAME}:9080/gitblit" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+GITBLIT_URL=`echo "http\://${WEB_SERVER_HOSTNAME}\:9080/gitblit" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(com\.ibm\.landscaper\.gitblit\.url=\).*\$/\1${GITBLIT_URL}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
 
 # Using insecure connection for now for filesystem
-VERSIONED_FILESYSTEM_API_URL=`echo "http://${WEB_SERVER_HOSTNAME}:9080/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+VERSIONED_FILESYSTEM_API_URL=`echo "http\://${WEB_SERVER_HOSTNAME}\:9080/landscaper" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(versioned-filesystem-client\.ribbon\.listOfServers=\).*\$/\1${VERSIONED_FILESYSTEM_API_URL}/" /opt/ibm-ucd-patterns/conf/server/versioned-filesystem-client.properties
 
 sed -i "s/WEB_SERVER_HOSTNAME/${WEB_SERVER_HOSTNAME}/" /opt/ibm-ucd-patterns/conf/server/engine-services-client.properties
@@ -58,12 +58,12 @@ if [ -n "$DOCKER_HOST" ]; then
     DOCKER_PORT=2376
   fi
 
-  sed -i "s/DOCKER_REMOTE_URL/${DOCKER_HOST}:${DOCKER_PORT}/" /opt/ibm-ucd-patterns/conf/server/docker-api-client.properties
+  sed -i "s/DOCKER_REMOTE_URL/${DOCKER_HOST}\:${DOCKER_PORT}/" /opt/ibm-ucd-patterns/conf/server/docker-api-client.properties
 
   if [ -z "$DOCKER_PROTO" ]; then
     DOCKER_PROTO="https"
   fi
-  echo "com.ibm.patterns.docker.remote.url=${DOCKER_PROTO}://${DOCKER_HOST}:${DOCKER_PORT}" >> /opt/ibm-ucd-patterns/conf/server/config.properties
+  echo "com.ibm.patterns.docker.remote.url=${DOCKER_PROTO}\://${DOCKER_HOST}\:${DOCKER_PORT}" >> /opt/ibm-ucd-patterns/conf/server/config.properties
 else
   # Delete value
   echo "TIP: You can associate this container with a Docker Remote API endpoint to enable Heat-based multiple-node docker designs in the editor."
@@ -123,21 +123,22 @@ data=json.load(sys.stdin); print data['token']"`
   echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
   echo "DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN}"
 
-  cat > pattern-integration <<EOF
+  cat << EOF > pattern-integration
   {
     "name": "landscaper",
     "description": "",
     "properties": {
-      "landscaperUrl": "http://${WEB_SERVER_HOSTNAME}:9080/landscaper",
+      "landscaperUrl": "http\://${WEB_SERVER_HOSTNAME}\:9080/landscaper",
       "landscaperUser": "user",
-      "landscaperPassword": "user"
+      "landscaperPassword": "user",
+      "useAdminCredentials": "true"
     }
   }
 EOF
 
   curl -k -u admin:admin -s -H "Accept: application/json" -X PUT \
   -d @pattern-integration \
-  "http://${DEPLOY_PORT_8080_TCP_ADDR}:${DEPLOY_PORT_8080_TCP_PORT}/rest/integration/pattern"
+  "http://$DEPLOY_PORT_8080_TCP_ADDR:$DEPLOY_PORT_8080_TCP_PORT/rest/integration/pattern"
 else
   echo "TIP: link an urbancode deploy container via --link %myucdcontainername%:deploy to automatically register it with this patterns container."
 fi
