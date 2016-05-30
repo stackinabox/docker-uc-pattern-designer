@@ -157,4 +157,5 @@ if [ -n "$LOG_CONFIG" ]; then
     echo "************************************************************************"
   done
 fi
-/usr/bin/supervisord -c /etc/supervisord.conf
+
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
