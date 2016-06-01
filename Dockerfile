@@ -17,10 +17,21 @@ EXPOSE 9443
 
 ENV LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-} \
 	WEB_SERVER_HOSTNAME=${WEB_SERVER_HOSTNAME:-$HOSTNAME} \
+	DATABASE_HOST=${DATABASE_HOST:-} \
+	DATABASE_PORT=${DATABASE_PORT:-} \
+	DATABASE_NAME=${DATABASE_NAME:-} \
+	DATABASE_USER=${DATABASE_USER:-} \
+	DATABASE_PASS=${DATABASE_PASS:-} \
+	ENGINE_HOST=${ENGINE_HOST:-} \
+	ENGINE_5000_PORT=${ENGINE_5000_PORT:-5000} \
+	ENGINE_8004_PORT=${ENGINE_8004_PORT:-8004} \
+	KEYSTONE_URL=${KEYSTONE_URL:-} \
+	DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL:-} \
 	DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN:-} \
 	DOCKER_HOST=${DOCKER_HOST:-} \
 	DOCKER_PORT=${DOCKER_PORT:-2376} \
-	DOCKER_PROTO=${DOCKER_PROTO:-https}
+	DOCKER_PROTO=${DOCKER_PROTO:-https} \
+	LOG_CONFIG=${LOG_CONFIG:-false}
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install --no-install-recommends python-pip python-dev git logrotate postgresql-client-* && \
@@ -49,7 +60,7 @@ RUN apt-get -qqy update && \
 	apt-get clean -y && \
 	apt-get autoclean -y && \
 	apt-get autoremove -y && \
-	rm -rf /tmp/ibm-ucd-patterns-install/web-install /tmp/supervisord.conf /var/lib/apt/lists/*
+	rm -rf /tmp/ibm-ucd-patterns-install /tmp/supervisord.conf /var/lib/apt/lists/*
 
 # Copy in installation properties
 ADD config/log4j.properties /opt/ibm-ucd-patterns/conf/server/log4j.properties
