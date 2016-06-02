@@ -30,8 +30,7 @@ ENV LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-} \
 	DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN:-} \
 	DOCKER_HOST=${DOCKER_HOST:-} \
 	DOCKER_PORT=${DOCKER_PORT:-2376} \
-	DOCKER_PROTO=${DOCKER_PROTO:-https} \
-	LOG_CONFIG=${LOG_CONFIG:-false}
+	DOCKER_PROTO=${DOCKER_PROTO:-https}
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install --no-install-recommends python-pip python-dev git logrotate postgresql-client-* && \
