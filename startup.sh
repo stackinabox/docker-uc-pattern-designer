@@ -115,36 +115,19 @@ fi
 
 if [ -n "$DEPLOY_SERVER_URL" ]; then
 
-  export DEPLOY_SERVER_AUTH_TOKEN=`curl -k -u admin:admin "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" -X PUT \
-| python -c \
+  DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
+    -X PUT \
+    "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
 "import json; import sys;
-data=json.load(sys.stdin); print data['token']"`
-
-  sed -i "s|DEPLOY_SERVER_URL|${DEPLOY_SERVER_URL}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
-  sed -i "s|DEPLOY_SERVER_AUTH_TOKEN|${DEPLOY_SERVER_AUTH_TOKEN}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+data=json.load(sys.stdin); print data['token']")
 
   echo "Registering UrbanCode Deploy server: "
   echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
   echo "DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN}"
-
-  cat << EOF > pattern-integration
-  {
-    "name": "landscaper",
-    "description": "",
-    "properties": {
-      "landscaperUrl": "http\://${WEB_SERVER_HOSTNAME}\:9080/landscaper",
-      "landscaperUser": "user",
-      "landscaperPassword": "user",
-      "useAdminCredentials": "true"
-    }
-  }
-EOF
-
-  curl -k -u admin:admin -s -H "Accept: application/json" -X PUT \
-  -d @pattern-integration \
-  "${DEPLOY_SERVER_URL}/rest/integration/pattern"
-else
-  echo "TIP: link an urbancode deploy container via --link %myucdcontainername%:deploy to automatically register it with this patterns container."
+  
+  sed -i "s|DEPLOY_SERVER_URL|${DEPLOY_SERVER_URL}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+  sed -i "s|DEPLOY_SERVER_AUTH_TOKEN|${DEPLOY_SERVER_AUTH_TOKEN}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+  
 fi
 
 if [ -n "$LOG_CONFIG" ]; then

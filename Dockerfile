@@ -26,6 +26,13 @@ ENV LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-} \
 	ENGINE_5000_PORT=${ENGINE_5000_PORT:-5000} \
 	ENGINE_8004_PORT=${ENGINE_8004_PORT:-8004} \
 	KEYSTONE_URL=${KEYSTONE_URL:-} \
+    KEYSTONE_ADMIN_USER=${KEYSTONE_ADMIN_USER:-admin} \ 
+    KEYSTONE_ADMIN_PASS=${KEYSTONE_ADMIN_PASS:-labstack} \
+    KEYSTONE_ADMIN_TENANT=${KEYSTONE_ADMIN_TENANT:-admin} \ 
+    KEYSTONE_USER=${KEYSTONE_USER:-demo} \ 
+    KEYSTONE_PASS=${KEYSTONE_PASS:-labstack} \
+    KEYSTONE_TENANT=${KEYSTONE_TENANT:-demo} \ 
+    KEYSTONE_DOMAIN=${KEYSTONE_DOMAIN:-Default} \
 	DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL:-} \
 	DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN:-} \
 	DOCKER_HOST=${DOCKER_HOST:-} \
@@ -33,7 +40,7 @@ ENV LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-} \
 	DOCKER_PROTO=${DOCKER_PROTO:-https}
 
 RUN apt-get -qqy update && \
-	apt-get -qqy install --no-install-recommends python-pip python-dev git logrotate postgresql-client-* && \
+	apt-get -qqy install --no-install-recommends build-essential python-setuptools python-pip python-dev git logrotate postgresql-client-* && \
 	pip install -U pbr && \
 	pip install -U pip && \
 	wget -O - $ARTIFACT_DOWNLOAD_URL | tar zxf - -C /tmp/ && \
@@ -56,6 +63,10 @@ RUN apt-get -qqy update && \
 	-Dinstall.server.discoveryServer.url=http\://WEB_SERVER_HOSTNAME:7575" \
 	./gradlew -sSq install && \
 	cat /tmp/supervisord.conf >> /etc/supervisor/conf.d/supervisord.conf && \
+	export PATH=/Library/Frameworks/Python.framework/Versions/2.7/bin:$PATH && \
+	pip install /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/azure*.whl && \
+	pip install /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/clouddiscovery*.whl && \
+	apt-get remove -qqy build-essential && \
 	apt-get clean -y && \
 	apt-get autoclean -y && \
 	apt-get autoremove -y && \
@@ -65,6 +76,7 @@ RUN apt-get -qqy update && \
 ADD config/log4j.properties /opt/ibm-ucd-patterns/conf/server/log4j.properties
 ADD config/docker-api-client.properties /opt/ibm-ucd-patterns/conf/server/docker-api-client.properties
 ADD config/seed.sql /root/seed.sql
+ADD config/post-configure-integrations.sh /root/post-configure-integrations.sh
 
 ENTRYPOINT ["/opt/startup.sh"]
 CMD []
