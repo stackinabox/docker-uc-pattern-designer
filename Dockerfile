@@ -41,8 +41,11 @@ ENV LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-} \
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install --no-install-recommends build-essential python-setuptools python-pip python-dev git logrotate postgresql-client-* && \
-	pip install -U pbr && \
-	pip install -U pip && \
+	pip install --upgrade --force-reinstall pbr && \
+	pip install --upgrade --force-reinstall pip && \
+	export PATH=/usr/local/bin:$PATH && \
+	pip install --upgrade --force-reinstall virtualenv && \
+	pip install --upgrade --force-reinstall greenlet && \
 	wget -O - $ARTIFACT_DOWNLOAD_URL | tar zxf - -C /tmp/ && \
 	cd /tmp/ibm-ucd-patterns-install/web-install && \
 	JAVA_OPTS="-Dlicense.accepted=Y \
@@ -63,14 +66,15 @@ RUN apt-get -qqy update && \
 	-Dinstall.server.discoveryServer.url=http\://WEB_SERVER_HOSTNAME:7575" \
 	./gradlew -sSq install && \
 	cat /tmp/supervisord.conf >> /etc/supervisor/conf.d/supervisord.conf && \
-	export PATH=/Library/Frameworks/Python.framework/Versions/2.7/bin:$PATH && \
-	pip install /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/azure*.whl && \
-	pip install /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/clouddiscovery*.whl && \
+	pip install --upgrade --force-reinstall /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/azure*.whl && \
+	pip install --upgrade --force-reinstall /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/clouddiscovery*.whl && \
 	apt-get remove -qqy build-essential && \
 	apt-get clean -y && \
 	apt-get autoclean -y && \
 	apt-get autoremove -y && \
 	rm -rf /tmp/ibm-ucd-patterns-install /tmp/supervisord.conf /var/lib/apt/lists/*
+
+VOLUME ["/opt/ibm-ucd-patterns/opt/tomcat/webapps/landscaper/static/$ARTIFACT_VERSION/js/tutorial/nls/"]
 
 # Copy in installation properties
 ADD config/log4j.properties /opt/ibm-ucd-patterns/conf/server/log4j.properties
