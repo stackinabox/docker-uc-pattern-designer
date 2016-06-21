@@ -7,13 +7,17 @@ echo "This node has an IP of " $IP_ADDRESS
 
 env
 
-if [ -z "$DATABASE_PORT_5432_TCP_ADDR" ]; then
-  echo "Please link this container with a Postgres database using '-link {container-name}:database'"
+if [ -z "$DATABASE_HOST" ]; then
+  echo "Please start this container with a Postgres database using '-e DATABASE_HOST=192.168.27.xxx'"
   exit 1
 fi
 
-if [ -z "$DATABASE_ENV_POSTGRES_DATABASE" ]; then
-  DATABASE_ENV_POSTGRES_DATABASE=ibm_ucdp
+if [ -z "$DATABASE_NAME" ]; then
+  DATABASE_NAME=ibm_ucdp
+fi
+
+if [ -z "$DATABASE_PORT" ]; then
+  DATABASE_PORT=5432
 fi
 
 if [ -z "DOCKER_HOST" ]; then
@@ -25,15 +29,15 @@ if [ -z "DOCKER_PORT" ]; then
 fi
 
 # Escape characters which might confuse the regex in sed below
-DATABASE_CONNECTION_URL=`echo "jdbc\:postgresql\://${DATABASE_PORT_5432_TCP_ADDR}\:${DATABASE_PORT_5432_TCP_PORT}/${DATABASE_ENV_POSTGRES_DATABASE}" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
+DATABASE_CONNECTION_URL=`echo "jdbc\:postgresql\://${DATABASE_HOST}\:${DATABASE_PORT}/${DATABASE_NAME}" | sed -e 's/[]\/$*.^|[]/\\\\&/g'`
 sed -i "s/\(hibernate\.connection\.url=\).*\$/\1${DATABASE_CONNECTION_URL}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 
-if [ -n $DATABASE_ENV_POSTGRES_USER ]; then
-  sed -i "s/\(hibernate\.connection\.username=\).*\$/\1${DATABASE_ENV_POSTGRES_USER}/" /opt/ibm-ucd-patterns/conf/server/server.properties
+if [ -n $DATABASE_USER ]; then
+  sed -i "s/\(hibernate\.connection\.username=\).*\$/\1${DATABASE_USER}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 fi
 
-if [ -n $DATABASE_ENV_POSTGRES_PASSWORD ]; then
-  sed -i "s/\(hibernate\.connection\.password=\).*\$/\1${DATABASE_ENV_POSTGRES_PASSWORD}/" /opt/ibm-ucd-patterns/conf/server/server.properties
+if [ -n $DATABASE_PASS ]; then
+  sed -i "s/\(hibernate\.connection\.password=\).*\$/\1${DATABASE_PASS}/" /opt/ibm-ucd-patterns/conf/server/server.properties
 fi
 
 sed -i "s/\(install\.server\.web\.host=\).*\$/\1${WEB_SERVER_HOSTNAME}/" /opt/ibm-ucd-patterns/conf/server/server.properties
@@ -71,13 +75,13 @@ else
   sed -i "s/DOCKER_REMOTE_URL//" /opt/ibm-ucd-patterns/conf/server/docker-api-client.properties
 fi
 
-if [ -n "$ENGINE_ENV_PUBLIC_HOSTNAME" ]; then
-  echo "$ENGINE_PORT_5000_TCP_ADDR $ENGINE_ENV_PUBLIC_HOSTNAME" >> /etc/hosts
+if [ -n "$ENGINE_HOST" ]; then
+  echo "$ENGINE_HOST $ENGINE_HOST" >> /etc/hosts
 
   # linked to an engine, configure appropriately
-  sed -i "s/ENGINE_ENV_PUBLIC_HOSTNAME/${ENGINE_ENV_PUBLIC_HOSTNAME}/" /root/seed.sql
-  sed -i "s/ENGINE_PORT_8004_TCP_PORT/${ENGINE_PORT_8004_TCP_PORT}/" /root/seed.sql
-  sed -i "s/ENGINE_PORT_5000_TCP_PORT/${ENGINE_PORT_5000_TCP_PORT}/" /root/seed.sql
+  sed -i "s/ENGINE_ENV_PUBLIC_HOSTNAME/${ENGINE_HOST}/" /root/seed.sql
+  sed -i "s/ENGINE_PORT_8004_TCP_PORT/${ENGINE_8004_PORT}/" /root/seed.sql
+  sed -i "s/ENGINE_PORT_5000_TCP_PORT/${ENGINE_5000_PORT}/" /root/seed.sql
 
   sed -i "s|KEYSTONE_URL|${KEYSTONE_URL}|g" /root/seed.sql
 
@@ -97,9 +101,9 @@ if [ -n "$ENGINE_ENV_PUBLIC_HOSTNAME" ]; then
     echo "MISSING FILE within container: $DATABASE_SEED_DATA_FILE"
 
     echo "Configure the default engine using the following command:
-      psql -u $DATABASE_ENV_POSTGRES_USER -p$DATABASE_ENV_POSTGRES_PASSWORD \
-        -D$DATABASE_ENV_POSTGRES_DATABASE -h $ENGINE_ENV_PUBLIC_HOSTNAME\
-        -P $DATABASE_PORT_5432_TCP_PORT -f seed.sql"
+      psql -u $DATABASE_USER -p$DATABASE_PASS \
+        -D$DATABASE_NAME -h $ENGINE_ENV_PUBLIC_HOSTNAME\
+        -P $DATABASE_PORT -f seed.sql"
     echo "Use the following seed.sql:"
     cat /root/seed.sql
   fi
@@ -109,38 +113,21 @@ else
   echo "     where the host alias may be 'boot2docker' or a user defined host alias defined in your /etc/hosts."
 fi
 
-if [ -n "$DEPLOY_PORT_8080_TCP_ADDR" ]; then
+if [ -n "$DEPLOY_SERVER_URL" ]; then
 
-  export DEPLOY_SERVER_URL="http\://$DEPLOY_PORT_8080_TCP_ADDR\:$DEPLOY_PORT_8080_TCP_PORT"
-  export DEPLOY_SERVER_AUTH_TOKEN=`curl -k -u admin:admin "http://${DEPLOY_PORT_8080_TCP_ADDR}:${DEPLOY_PORT_8080_TCP_PORT}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" -X PUT \
-| python -c \
-  "import json; import sys;
-data=json.load(sys.stdin); print data['token']"`
-  sed -i "s|DEPLOY_SERVER_URL|${DEPLOY_SERVER_URL}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
-  sed -i "s|DEPLOY_SERVER_AUTH_TOKEN|${DEPLOY_SERVER_AUTH_TOKEN}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+  DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
+    -X PUT \
+    "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
+"import json; import sys;
+data=json.load(sys.stdin); print data['token']")
 
   echo "Registering UrbanCode Deploy server: "
   echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
   echo "DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN}"
-
-  cat << EOF > pattern-integration
-  {
-    "name": "landscaper",
-    "description": "",
-    "properties": {
-      "landscaperUrl": "http\://${WEB_SERVER_HOSTNAME}\:9080/landscaper",
-      "landscaperUser": "user",
-      "landscaperPassword": "user",
-      "useAdminCredentials": "true"
-    }
-  }
-EOF
-
-  curl -k -u admin:admin -s -H "Accept: application/json" -X PUT \
-  -d @pattern-integration \
-  "http://$DEPLOY_PORT_8080_TCP_ADDR:$DEPLOY_PORT_8080_TCP_PORT/rest/integration/pattern"
-else
-  echo "TIP: link an urbancode deploy container via --link %myucdcontainername%:deploy to automatically register it with this patterns container."
+  
+  sed -i "s|DEPLOY_SERVER_URL|${DEPLOY_SERVER_URL}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+  sed -i "s|DEPLOY_SERVER_AUTH_TOKEN|${DEPLOY_SERVER_AUTH_TOKEN}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
+  
 fi
 
 if [ -n "$LOG_CONFIG" ]; then
@@ -157,4 +144,5 @@ if [ -n "$LOG_CONFIG" ]; then
     echo "************************************************************************"
   done
 fi
-/usr/bin/supervisord -c /etc/supervisord.conf
+
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
