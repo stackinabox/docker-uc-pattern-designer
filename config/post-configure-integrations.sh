@@ -226,6 +226,16 @@ fi
 
 if [ -n "$DEPLOY_SERVER_URL" ]; then
 
+  attempt=1
+  until $(curl -k -u admin:admin --output /dev/null --silent --head --fail "${DEPLOY_SERVER_URL}/#security/tokens"); do
+      attempt=attempt + 1
+      sleep 5
+      if attempt > 5; then
+        echo "Failed to connect to ${DEPLOY_SERVER_URL}. Please check url for valid server and try again."
+        exit 1;
+      done
+  done
+
   DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
     -X PUT \
     "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
