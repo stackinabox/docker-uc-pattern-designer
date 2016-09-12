@@ -226,21 +226,42 @@ fi
 
 if [ -n "$DEPLOY_SERVER_URL" ]; then
 
+  echo "attempting to register blueprintdesiger with UCD server at ${DEPLOY_SERVER_URL}"
+  # UCD Server takes a few seconds to startup. If we call this function too early it will fail
+  # loop until it succeeds or fail after # of attempts
   attempt=1
-  until $(curl -k -u admin:admin --output /dev/null --silent --head --fail "${DEPLOY_SERVER_URL}/#security/tokens"); do
-      attempt=attempt + 1
-      sleep 5
-      if attempt > 5; then
+  until $(curl -k -u admin:admin --output /dev/null --silent --head --fail "${DEPLOY_SERVER_URL}/cli/systemConfiguration"); do
+      attempt=$(($attempt + 1))
+      sleep 10
+      if [ "$attempt" -gt "18" ]; then
         echo "Failed to connect to ${DEPLOY_SERVER_URL}. Please check url for valid server and try again."
-        exit 1;
-      done
+        exit 1
+      fi
   done
 
-  DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
-    -X PUT \
-    "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
+  echo "verified connectivity to UCD server at ${DEPLOY_SERVER_URL}"
+  
+  if [ -z "$DEPLOY_SERVER_AUTH_TOKEN" ]; then
+  
+    attempt=1
+    until [ -n "$DEPLOY_SERVER_AUTH_TOKEN" ]; do
+      attempt=$(($attempt + 1))
+      sleep 10
+
+      echo "Attempting to automatically integrate blueprint designer with UCD server ${DEPLOY_SERVER_URL}. Requesting auth token on UCD server... $attempt"
+      DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
+        -X PUT \
+        "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
 "import json; import sys;
-data=json.load(sys.stdin); print data['token']")
+data=json.load(sys.stdin);
+print data['token']")
+
+      if [ "$attempt" -gt "18" ]; then
+        echo "Failed to request auth token on UCD server ${DEPLOY_SERVER_URL}. Unable to automatically integrate blueprintdesiger with UCD server."
+        exit 1
+      fi
+    done
+  fi
 
   echo "Registering UrbanCode Deploy server: "
   echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
@@ -252,8 +273,8 @@ data=json.load(sys.stdin); print data['token']")
     "description": "",
     "properties": {
       "landscaperUrl": "http\://${WEB_SERVER_HOSTNAME}\:9080/landscaper",
-      "landscaperUser": "user",
-      "landscaperPassword": "user",
+      "landscaperUser": "${KEYSTONE_USER}",
+      "landscaperPassword": "${KEYSTONE_PASS}",
       "useAdminCredentials": "true"
     }
   }

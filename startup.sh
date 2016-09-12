@@ -115,11 +115,29 @@ fi
 
 if [ -n "$DEPLOY_SERVER_URL" ]; then
 
-  DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
-    -X PUT \
-    "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
+  if [ -z "$DEPLOY_SERVER_AUTH_TOKEN" ]; then
+
+    # UCD Server takes a few seconds to startup. If we call this function too early it will fail
+    # loop until it succeeds or fail after # of attempts
+    attempt=1
+    until [ -n "$DEPLOY_SERVER_AUTH_TOKEN" ]; do
+      attempt=$(($attempt + 1))
+      sleep 10
+
+      echo "Attempting to automatically integrate blueprint designer with UCD server ${DEPLOY_SERVER_URL}. Requesting auth token on UCD server... $attempt"
+      DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
+        -X PUT \
+        "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
 "import json; import sys;
-data=json.load(sys.stdin); print data['token']")
+data=json.load(sys.stdin);
+print data['token']")
+
+      if [ "$attempt" -gt "18" ]; then
+        echo "Failed to request auth token on UCD server ${DEPLOY_SERVER_URL}. Unable to automatically integrate blueprintdesiger with UCD server."
+        exit 1
+      fi
+    done
+  fi
 
   echo "Registering UrbanCode Deploy server: "
   echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
