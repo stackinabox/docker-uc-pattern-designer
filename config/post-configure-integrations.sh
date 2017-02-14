@@ -69,11 +69,66 @@ data=json.load(sys.stdin); print data['id']"`
 
   echo "osAuthRealm = $osAuthRealm"
 
-  env
+  # test connection to authenticationRealm (import users action will not work until we do this)
+  curl -s -u ucdpadmin:ucdpadmin \
+     -H 'Content-Type: application/json' \
+     -X PUT \
+     -d "
+  {
+    \"name\": \"OpenStack\",
+    \"loginClassName\": \"com.urbancode.landscape.security.authentication.keystone.KeystoneLoginModule\",
+    \"description\": \"\",
+    \"allowedAttempts\": 0,
+    \"property/facingType\": \"PUBLIC\",
+    \"properties\": 
+    {
+      \"url\": \""$KEYSTONE_URL"\",
+      \"use-available-orchestration\": \"false\",
+      \"overridden-orchestration\": \"http\://"$ENGINE_HOST"\:"$ENGINE_8004_PORT"\",
+      \"admin-password\": \""$KEYSTONE_ADMIN_PASS"\",
+      \"admin-username\": \""$KEYSTONE_ADMIN_USER"\",
+      \"admin-tenant\": \""$KEYSTONE_ADMIN_TENANT"\",
+      \"domain\": \""$KEYSTONE_DOMAIN"\",
+      \"timeoutMins\": \"60\"
+    },
+    \"authorizationRealm\": 
+    {
+      \"properties\": {},
+      \"existingId\": \""$osAuthRealm"\"
+    }
+  }
+     " \
+     http://$WEB_SERVER_HOSTNAME:9080/landscaper/security/authenticationRealm/testConnection
+
   # import users from new OpenStack user auth realm
   curl -s -u ucdpadmin:ucdpadmin \
      -H 'Content-Type: application/json' \
      -X PUT \
+     -d "
+  {
+    \"name\": \"OpenStack\",
+    \"loginClassName\": \"com.urbancode.landscape.security.authentication.keystone.KeystoneLoginModule\",
+    \"description\": \"\",
+    \"allowedAttempts\": 0,
+    \"property/facingType\": \"PUBLIC\",
+    \"properties\": 
+    {
+      \"url\": \""$KEYSTONE_URL"\",
+      \"use-available-orchestration\": \"false\",
+      \"overridden-orchestration\": \"http\://"$ENGINE_HOST"\:"$ENGINE_8004_PORT"\",
+      \"admin-password\": \""$KEYSTONE_ADMIN_PASS"\",
+      \"admin-username\": \""$KEYSTONE_ADMIN_USER"\",
+      \"admin-tenant\": \""$KEYSTONE_ADMIN_TENANT"\",
+      \"domain\": \""$KEYSTONE_DOMAIN"\",
+      \"timeoutMins\": \"60\"
+    },
+    \"authorizationRealm\": 
+    {
+      \"properties\": {},
+      \"existingId\": \""$osAuthRealm"\"
+    }
+  }
+     " \
      http://$WEB_SERVER_HOSTNAME:9080/landscaper/security/authenticationRealm/$osAuthRealm/importUsers/undefined
   
   # find OpenStack cloud provider
@@ -89,7 +144,6 @@ for item in data:
 
   echo "osCloudProvider = $osCloudProvider"
 
-  env
   # find 'demo' cloud project under the OpenStack cloud provider
   osCloudProject=`curl -s -u ucdpadmin:ucdpadmin \
      -H 'Content-Type: application/json' \
@@ -103,7 +157,6 @@ for item in data:
 
   echo "osCloudProject = $osCloudProject"
 
-  env
   # add cloud authorization credentials to osCloudProject
   curl -s -u ucdpadmin:ucdpadmin \
      -H 'Content-Type: application/json' \
@@ -148,7 +201,6 @@ for item in data:
 
   echo "KeystoneUser = $keystoneUser"
 
-  env
   # create new 'demo' team and map keystone_user into it with appropriate roles
   osDemoTeam=`curl -s -u ucdpadmin:ucdpadmin \
      -H 'Content-Type: application/json' \
@@ -224,48 +276,14 @@ data=json.load(sys.stdin); print data['id']"`
   http://$WEB_SERVER_HOSTNAME:9080/landscaper/security/team/$osDemoTeam
 fi 
 
-if [ -n "$DEPLOY_SERVER_URL" ]; then
 
-  echo "attempting to register blueprintdesiger with UCD server at ${DEPLOY_SERVER_URL}"
-  # UCD Server takes a few seconds to startup. If we call this function too early it will fail
-  # loop until it succeeds or fail after # of attempts
-  attempt=1
-  until $(curl -k -u admin:admin --output /dev/null --silent --head --fail "${DEPLOY_SERVER_URL}/cli/systemConfiguration"); do
-      attempt=$(($attempt + 1))
-      sleep 10
-      if [ "$attempt" -gt "18" ]; then
-        echo "Failed to connect to ${DEPLOY_SERVER_URL}. Please check url for valid server and try again."
-        exit 1
-      fi
-  done
+if [ -n "$DEPLOY_SERVER_HOST" ]; then
 
-  echo "verified connectivity to UCD server at ${DEPLOY_SERVER_URL}"
-  
-  if [ -z "$DEPLOY_SERVER_AUTH_TOKEN" ]; then
-  
-    attempt=1
-    until [ -n "$DEPLOY_SERVER_AUTH_TOKEN" ]; do
-      attempt=$(($attempt + 1))
-      sleep 10
-
-      echo "Attempting to automatically integrate blueprint designer with UCD server ${DEPLOY_SERVER_URL}. Requesting auth token on UCD server... $attempt"
-      DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
-        -X PUT \
-        "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
-"import json; import sys;
-data=json.load(sys.stdin);
-print data['token']")
-
-      if [ "$attempt" -gt "18" ]; then
-        echo "Failed to request auth token on UCD server ${DEPLOY_SERVER_URL}. Unable to automatically integrate blueprintdesiger with UCD server."
-        exit 1
-      fi
-    done
-  fi
-
-  echo "Registering UrbanCode Deploy server: "
-  echo "DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL}"
-  echo "DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN}"
+  echo "Attempting to register with UrbanCode Deploy server at ${DEPLOY_SERVER_URL}"
+  DEPLOY_SERVER_URL="${DEPLOY_SERVER_PROTO}://${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT}"
+  echo "DEPLOY_SERVER_PROTO: ${DEPLOY_SERVER_PROTO}"
+  echo "DEPLOY_SERVER_HOST: ${DEPLOY_SERVER_HOST}"
+  echo "DEPLOY_SERVER_PORT: ${DEPLOY_SERVER_PORT}"
 
   cat << EOF > pattern-integration
   {
@@ -279,16 +297,16 @@ print data['token']")
     }
   }
 EOF
-
+  
+  /usr/local/bin/wait-for-it.sh $DEPLOY_SERVER_HOST:$DEPLOY_SERVER_PORT --timeout=0 --strict -- \
   curl -k -s -u admin:admin \
     -H 'Accept: application/json' \
     -X PUT \
     -d @pattern-integration \
     "${DEPLOY_SERVER_URL}/rest/integration/pattern"
 
-
 else
-  echo "TIP: Pass ENV variable at startup via -e DEPLOY_SERVER_URL=http://192.168.27.100:8080 to automatically register it with this patterns container."
+  echo "TIP: Pass ENV variables at startup via -e DEPLOY_SERVER_HOST=192.168.27.100 [DEPLOY_SERVER_PORT|DEPLOY_SERVER_PROTO] to automatically register it with this patterns container."
 fi
 
 exit 0

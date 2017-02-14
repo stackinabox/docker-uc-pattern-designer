@@ -10,6 +10,9 @@ ARG ARTIFACT_VERSION
 ADD startup.sh /opt/startup.sh
 ADD supervisord.conf /tmp/supervisord.conf
 
+# ADD wait-for-it.sh script
+ADD wait-for-it.sh /usr/local/bin
+
 # Expose Ports
 EXPOSE 7575
 EXPOSE 9080
@@ -33,6 +36,9 @@ ENV LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-} \
     KEYSTONE_PASS=${KEYSTONE_PASS:-labstack} \
     KEYSTONE_TENANT=${KEYSTONE_TENANT:-demo} \ 
     KEYSTONE_DOMAIN=${KEYSTONE_DOMAIN:-Default} \
+	DEPLOY_SERVER_HOST=${DEPLOY_SERVER_HOST:-} \
+	DEPLOY_SERVER_PORT=${DEPLOY_SERVER_PORT:-8080} \
+	DEPLOY_SERVER_PROTO=${DEPLOY_SERVER_PROTO:-http} \
 	DEPLOY_SERVER_URL=${DEPLOY_SERVER_URL:-} \
 	DEPLOY_SERVER_AUTH_TOKEN=${DEPLOY_SERVER_AUTH_TOKEN:-} \
 	DOCKER_HOST=${DOCKER_HOST:-} \
@@ -46,7 +52,7 @@ RUN apt-get -qqy update && \
 	export PATH=/usr/local/bin:$PATH && \
 	pip install --upgrade --force-reinstall virtualenv && \
 	pip install --upgrade --force-reinstall greenlet && \
-	wget -O - $ARTIFACT_DOWNLOAD_URL | tar zxf - -C /tmp/ && \
+	wget -q -O - $ARTIFACT_DOWNLOAD_URL | tar zxf - -C /tmp/ && \
 	cd /tmp/ibm-ucd-patterns-install/web-install && \
 	JAVA_OPTS="-Dlicense.accepted=Y \
 	-Dinstall.server.dir=/opt/ibm-ucd-patterns \
@@ -65,16 +71,13 @@ RUN apt-get -qqy update && \
 	-Dinstall.server.deployServer.authToken=DEPLOY_SERVER_AUTH_TOKEN \
 	-Dinstall.server.discoveryServer.url=http\://WEB_SERVER_HOSTNAME:7575" \
 	./gradlew -sSq install && \
+	bash /tmp/ibm-ucd-patterns-install/web-install/media/server/bin/install-cloud-discovery-service.sh && \
 	cat /tmp/supervisord.conf >> /etc/supervisor/conf.d/supervisord.conf && \
-	pip install --upgrade --force-reinstall /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/azure*.whl && \
-	pip install --upgrade --force-reinstall /tmp/ibm-ucd-patterns-install/web-install/media/server/python-modules/clouddiscovery*.whl && \
 	apt-get remove -qqy build-essential && \
 	apt-get clean -y && \
 	apt-get autoclean -y && \
 	apt-get autoremove -y && \
 	rm -rf /tmp/ibm-ucd-patterns-install /tmp/supervisord.conf /var/lib/apt/lists/*
-
-VOLUME ["/opt/ibm-ucd-patterns/opt/tomcat/webapps/landscaper/static/$ARTIFACT_VERSION/js/tutorial/nls/"]
 
 # Copy in installation properties
 ADD config/log4j.properties /opt/ibm-ucd-patterns/conf/server/log4j.properties

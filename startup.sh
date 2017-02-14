@@ -20,11 +20,11 @@ if [ -z "$DATABASE_PORT" ]; then
   DATABASE_PORT=5432
 fi
 
-if [ -z "DOCKER_HOST" ]; then
+if [ -z "$DOCKER_HOST" ]; then
   DOCKER_HOST=localhost
 fi
 
-if [ -z "DOCKER_PORT" ]; then
+if [ -z "$DOCKER_PORT" ]; then
   DOCKER_HOST=2375
 fi
 
@@ -113,7 +113,10 @@ else
   echo "     where the host alias may be 'boot2docker' or a user defined host alias defined in your /etc/hosts."
 fi
 
-if [ -n "$DEPLOY_SERVER_URL" ]; then
+if [ -n "$DEPLOY_SERVER_HOST" ]; then
+
+  DEPLOY_SERVER_URL="${DEPLOY_SERVER_PROTO}://${DEPLOY_SERVER_HOST}:${DEPLOY_SERVER_PORT}"
+  echo "Registering Blueprint Designer with UrbanCode Deploy server ${DEPLOY_SERVER_URL}"
 
   if [ -z "$DEPLOY_SERVER_AUTH_TOKEN" ]; then
 
@@ -124,15 +127,28 @@ if [ -n "$DEPLOY_SERVER_URL" ]; then
       attempt=$(($attempt + 1))
       sleep 10
 
-      echo "Attempting to automatically integrate blueprint designer with UCD server ${DEPLOY_SERVER_URL}. Requesting auth token on UCD server... $attempt"
+      echo "requesting auth token for BlueprintDesigner on UCD ${DEPLOY_SERVER_URL}..."
+
+      cat << EOF > authtoken
+{
+  "userId":"20000000000000000000000001000000",
+  "expDate":"2017-10-12T04:00:00.000Z",
+  "expTime":"1970-01-01T08:15:00.000Z",
+  "description":"",
+  "host":"",
+  "expiration":1507792500000
+}
+EOF
+
       DEPLOY_SERVER_AUTH_TOKEN=$(curl -k -u admin:admin \
         -X PUT \
-        "${DEPLOY_SERVER_URL}/cli/teamsecurity/tokens?user=admin&expireDate=12-31-2020-12:00" | python -c \
+        -d @authtoken \
+        "${DEPLOY_SERVER_URL}/security/authtoken" | python -c \
 "import json; import sys;
 data=json.load(sys.stdin);
 print data['token']")
 
-      if [ "$attempt" -gt "18" ]; then
+      if [ "$attempt" -gt "60" ]; then
         echo "Failed to request auth token on UCD server ${DEPLOY_SERVER_URL}. Unable to automatically integrate blueprintdesiger with UCD server."
         exit 1
       fi
@@ -145,7 +161,9 @@ print data['token']")
   
   sed -i "s|DEPLOY_SERVER_URL|${DEPLOY_SERVER_URL}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
   sed -i "s|DEPLOY_SERVER_AUTH_TOKEN|${DEPLOY_SERVER_AUTH_TOKEN}|g" /opt/ibm-ucd-patterns/conf/server/config.properties
-  
+
+else
+  echo "TIP: Pass ENV variables at startup via -e DEPLOY_SERVER_HOST=192.168.27.100 [DEPLOY_SERVER_PORT|DEPLOY_SERVER_PROTO] to automatically register it with this patterns container."
 fi
 
 if [ -n "$LOG_CONFIG" ]; then
@@ -163,4 +181,4 @@ if [ -n "$LOG_CONFIG" ]; then
   done
 fi
 
-/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+/usr/local/bin/wait-for-it.sh --host=$DATABASE_HOST --port=$DATABASE_PORT --timeout=60 -- /usr/local/bin/wait-for-it.sh --host=$ENGINE_HOST --port=$ENGINE_8004_PORT --timeout=60 -- /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

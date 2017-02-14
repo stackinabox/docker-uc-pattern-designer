@@ -1,0 +1,15 @@
+.git/
+
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+.gitignore
+.travis.yml
+.build.rc
+.build.sh
+
+
+dev.txt
+latest.txt
+README.md
