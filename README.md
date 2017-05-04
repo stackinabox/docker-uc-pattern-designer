@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/stackinabox/docker-uc-pattern-designer.svg?branch=master)](https://travis-ci.org/stackinabox/docker-uc-pattern-designer)
+
 ## docker-uc-pattern-designer
 Builds Docker image for UrbanCode Deploy Blueprint Designer (visual HEAT editor)
 
